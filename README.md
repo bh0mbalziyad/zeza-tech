@@ -14,9 +14,9 @@ Email uniqueness is checked using `array.find()` over a state array which is pas
 
 ## Dependencies used
 
-[x] Ag Grid
-[x] Formik  
-[x] Tailwindcss
+- [x] Ag Grid
+- [x] Formik  
+- [x] Tailwindcss
 
 ## Installing dependencies
 

@@ -1,24 +1,9 @@
+import Grid from "../components/Grid";
+import { ErrorMessage, Field, Form, Formik, FormikHelpers } from "formik";
 import type { NextPage } from "next";
 import Head from "next/head";
-import Image from "next/image";
-import {
-  ChangeEvent,
-  ChangeEventHandler,
-  FormEvent,
-  useRef,
-  useState,
-} from "react";
+import { useState } from "react";
 import * as yup from "yup";
-import {
-  Formik,
-  Field,
-  Form,
-  ErrorMessage,
-  FieldInputProps,
-  FieldProps,
-} from "formik";
-import Grid from "@/components/Grid";
-import { ValueService } from "ag-grid-community";
 
 const fakeData: formData[] = [
   {
@@ -72,7 +57,18 @@ export type formData = {
   gender: "m" | "f" | "o";
 };
 
-const Home: NextPage = () => {
+export type formikFieldTypes = {
+  name: string;
+  email: string;
+  age: string;
+  phone1: string;
+  phone2: string;
+  gender: string;
+};
+
+const Home: NextPage<{
+  mockSubmit?: (values: formikFieldTypes) => void;
+}> = ({ mockSubmit }) => {
   const phoneRegExp =
     /^((\\+[1-9]{1,4}[ \\-]*)|(\\([0-9]{2,3}\\)[ \\-]*)|([0-9]{2,4})[ \\-]*)*?[0-9]{3,4}?[ \\-]*[0-9]{3,4}?$/;
 
@@ -81,23 +77,23 @@ const Home: NextPage = () => {
   const emailRegExp =
     /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
-  const [savedData, setSavedData] = useState<formData[]>(fakeData);
+  const [rowData, setRowData] = useState<formData[]>(fakeData);
 
   function validateAge(value: string) {
     let error;
 
-    if(value === "") {
-      error = "Age is required"
+    if (value === "") {
+      error = "Age is required";
       return error;
     }
 
-    if(!value.toLowerCase().match(ageRegExp)){
-      error = "Please enter a valid age"
+    if (!value.toLowerCase().match(ageRegExp)) {
+      error = "Please enter a valid age";
       return error;
     }
     const age = parseInt(value);
-    if(age < 20 || age > 50) {
-      error = "Age must be between 20 & 50"
+    if (age < 20 || age > 50) {
+      error = "Age must be between 20 & 50";
       return error;
     }
 
@@ -106,8 +102,8 @@ const Home: NextPage = () => {
 
   function validateEmail(email: string) {
     let error;
-    if(email === ""){
-      error = "Email is required"
+    if (email === "") {
+      error = "Email is required";
       return error;
     }
     if (!email.toLowerCase().match(emailRegExp)) {
@@ -115,28 +111,19 @@ const Home: NextPage = () => {
       return error;
     }
     if (isEmailTaken(email)) {
-      error = "Email taken, please use another email"
+      error = "Email taken, please use another email";
       return error;
     }
 
     return error;
   }
 
-
-  function isEmailTaken(email: string){
-    return savedData.find(formEntry => formEntry.email === email)
+  function isEmailTaken(email: string) {
+    return rowData.find((formEntry) => formEntry.email === email);
   }
 
   const validationSchema = yup.object().shape({
     name: yup.string().required("Name is required"),
-    // email: yup
-    //   .string()
-    //   .email("Please enter a valid email")
-    //   .required("Email is required"),
-    // age: yup
-    //   .string()
-    //   .required("Age is required")
-    //   .matches(ageRegExp, "Please enter a valid age"),
     phone1: yup
       .string()
       .required("Primary phone is required")
@@ -152,12 +139,34 @@ const Home: NextPage = () => {
       .required("This field is required"),
   });
 
+  function handleFormSubmit(
+    values: formikFieldTypes,
+    { resetForm }: FormikHelpers<formikFieldTypes>
+  ) {
+    if (mockSubmit) {
+      mockSubmit(values);
+      return;
+    }
+
+    const valueCopy = {
+      ...values,
+      age: parseInt(values.age),
+      gender: values.gender as "m" | "f" | "o",
+    };
+    console.log(JSON.stringify(valueCopy));
+    setRowData((prevState) => [...prevState, valueCopy]);
+    resetForm();
+  }
+
   return (
     <div>
       <Head>
         <title>Zeza Tech Submission</title>
       </Head>
-      <div className="max-w-3xl px-3 mx-auto">
+      <h1 className="text-center text-5xl font-bold mt-8 mb-4">
+        Zeza Tech React/Next Assignment
+      </h1>
+      <div className="mt-6 max-w-3xl px-3 mx-auto">
         <Formik
           initialValues={{
             name: "",
@@ -168,21 +177,15 @@ const Home: NextPage = () => {
             gender: "",
           }}
           validationSchema={validationSchema}
-          onSubmit={(values, { resetForm }) => {
-            const valueCopy = {
-              ...values,
-              age: parseInt(values.age),
-              gender: values.gender as "m" | "f" | "o",
-            };
-            console.log(JSON.stringify(valueCopy));
-            setSavedData((prevState) => [...prevState, valueCopy]);
-            resetForm();
-          }}
+          onSubmit={handleFormSubmit}
         >
           {({ values, errors, touched, setFieldValue }) => (
             <Form className="flex flex-col">
               {/* Name */}
               <div className="py-2">
+                <label className="ml-1" htmlFor="name">
+                  Add your name
+                </label>
                 <Field
                   className="p-2 rounded-lg border-2 w-full border-gray-500 my-1 outline-none text-gray-600"
                   id="name"
@@ -197,22 +200,40 @@ const Home: NextPage = () => {
               </div>
               {/* Email */}
               <div className="py-2">
+                <label className="ml-1" htmlFor="email">
+                  Add an email address
+                </label>
                 <Field
                   className="p-2 rounded-lg border-2 w-full border-gray-500 my-1 outline-none text-gray-600"
                   id="email"
                   name="email"
+                  data-testid="email"
                   placeholder="Email*"
                   validate={validateEmail}
                 />
                 <ErrorMessage name="email">
                   {(msg) => (
-                    <div className="pl-1 text-red-400 text-sm">{msg}</div>
+                    <p
+                      data-testid="email-error"
+                      className="pl-1 text-red-400 text-sm"
+                    >
+                      {msg}
+                    </p>
                   )}
                 </ErrorMessage>
               </div>
               {/* Age */}
               <div className="py-2">
-                <Field placeholder="Age*" className="p-2 rounded-lg border-2 w-full border-gray-500 my-1 outline-none text-gray-600" id="age" name="age" validate={validateAge} />
+                <label className="ml-1" htmlFor="age">
+                  Add your age
+                </label>
+                <Field
+                  placeholder="Age*"
+                  className="p-2 rounded-lg border-2 w-full border-gray-500 my-1 outline-none text-gray-600"
+                  id="age"
+                  name="age"
+                  validate={validateAge}
+                />
                 <ErrorMessage name="age">
                   {(msg) => (
                     <div className="pl-1 text-red-400 text-sm">{msg}</div>
@@ -221,6 +242,9 @@ const Home: NextPage = () => {
               </div>
               {/* Phone 1 */}
               <div className="py-2">
+                <label className="ml-1" htmlFor="phone1">
+                  Add your primary phone number
+                </label>
                 <Field
                   className="p-2 rounded-lg border-2 w-full border-gray-500 my-1 outline-none text-gray-600"
                   id="phone1"
@@ -235,6 +259,9 @@ const Home: NextPage = () => {
               </div>
               {/* Phone 2 */}
               <div className="py-2">
+                <label className="ml-1" htmlFor="phone2">
+                  Add an alternate phone number
+                </label>
                 <Field
                   className="p-2 rounded-lg border-2 w-full border-gray-500 my-1 outline-none text-gray-600"
                   id="phone2"
@@ -249,6 +276,9 @@ const Home: NextPage = () => {
               </div>
 
               <div className="py-2">
+                <label className="ml-1" htmlFor="gender">
+                  Select your gender
+                </label>
                 <Field
                   className="p-2 py-3 w-full bg-white text-gray-600 rounded-lg border-2 border-gray-500 outline-none"
                   id="gender"
@@ -256,7 +286,7 @@ const Home: NextPage = () => {
                   name="gender"
                 >
                   <option value="" disabled>
-                    Gender
+                    Choose one
                   </option>
                   <option value="m">Male</option>
                   <option value="f">Female</option>
@@ -279,7 +309,7 @@ const Home: NextPage = () => {
         </Formik>
       </div>
 
-      <Grid rowData={savedData} />
+      <Grid rowData={rowData} />
     </div>
   );
 };
